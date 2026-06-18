@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>酒メモ — sake-memo</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1C1A17">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- iOS PWA対応 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="酒メモ">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Noto+Sans+JP:wght@300;400&display=swap');
+
+  :root {
+    --ink:    #1C1A17;
+    --washi:  #F0EBE1;
+    --paper:  #FAF7F2;
+    --shu:    #C0392B;
+    --gold:   #B8973A;
+    --mizu:   #6B9FAD;
+    --gray:   #8A8580;
+    --border: #D8D2C8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 22px;
+    color: var(--washi);
+    letter-spacing: 6px;
+    font-weight: 300;
+  }
+  .brand span { color: var(--gold); }
+  .header-sub {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--washi);
+  }
+  .tab {
+    padding: 14px 28px;
+    cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--gray);
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    user-select: none;
+  }
+  .tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--shu);
+    font-weight: 600;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 28px 20px; max-width: 480px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--shu);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 28px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── FORM ── */
+  .field { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1.5px;
+    margin-bottom: 5px;
+  }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%;
+    background: var(--washi);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* ── PHOTO UPLOAD ── */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .photo-slot {
+    aspect-ratio: 1;
+    border: 1px dashed var(--border);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--washi);
+    transition: border-color .2s;
+    overflow: hidden;
+    position: relative;
+  }
+  .photo-slot:hover { border-color: var(--gold); }
+  .photo-slot img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute; top: 0; left: 0;
+  }
+  .photo-slot .icon { font-size: 22px; color: var(--border); }
+  .photo-slot .label { font-size: 9px; color: var(--gray); margin-top: 4px; letter-spacing: 1px; }
+  .photo-slot input[type=file] { display: none; }
+  .photo-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 20px; height: 20px;
+    background: rgba(28,26,23,.75);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .photo-remove:hover { background: var(--shu); }
+
+  /* ── RATING STARS ── */
+  .stars { display: flex; gap: 6px; }
+  .star {
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--border);
+    transition: color .15s;
+    user-select: none;
+  }
+  .star.active { color: var(--gold); }
+
+  /* ── SAKE METER CALC ── */
+  .meter-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .meter-result-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+  }
+  .meter-result-box {
+    background: var(--washi);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .meter-result-box .val {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--shu);
+  }
+  .meter-result-box .val-label {
+    font-size: 10px;
+    color: var(--gray);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* ── 4-QUADRANT CHART ── */
+  .chart-wrap {
+    background: var(--washi);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  .chart-title {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gray);
+    margin-bottom: 14px;
+  }
+  canvas#quadChart {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+  }
+  .quadrant-labels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .ql {
+    text-align: center;
+    font-size: 11px;
+    padding: 4px 0;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+  .ql.tanrei-ama  { background: #EAF0F8; color: #2D5F9E; }
+  .ql.tanrei-kara { background: #EAF4F0; color: #2E7D6A; }
+  .ql.jonjun-ama  { background: #F4EAF0; color: #8B2D6A; }
+  .ql.jonjun-kara { background: #F5F0EA; color: #8B6914; }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--washi);
+    border: none;
+    border-radius: 2px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .2s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { background: #333; }
+
+  .btn-shu {
+    width: 100%;
+    padding: 14px;
+    background: var(--shu);
+    color: white;
+    border: none;
+    border-radius: 2px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .2s;
+  }
+  .btn-shu:hover { background: #a93226; }
+
+  /* ── RECORD LIST ── */
+  .list-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+  .record-count {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 2px;
+  }
+  .backup-actions { display: flex; gap: 14px; }
+  .backup-link {
+    font-size: 11px;
+    color: var(--mizu);
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(107,159,173,.4);
+  }
+  .backup-link:hover { color: var(--shu); }
+  .record-card {
+    background: var(--washi);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow .2s;
+  }
+  .record-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  .record-card-inner { display: flex; align-items: stretch; }
+  .record-thumb {
+    width: 72px; min-height: 72px;
+    background: var(--border);
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .record-thumb img { width: 72px; height: 100%; object-fit: cover; }
+  .record-info { padding: 10px 14px; flex: 1; }
+  .record-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .record-name {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .record-date {
+    font-size: 10px;
+    color: var(--gray);
+    letter-spacing: .5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .record-meta {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .record-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-right: 4px;
+    letter-spacing: 1px;
+  }
+  .tag-tanrei-ama  { background: #EAF0F8; color: #2D5F9E; }
+  .tag-tanrei-kara { background: #EAF4F0; color: #2E7D6A; }
+  .tag-jonjun-ama  { background: #F4EAF0; color: #8B2D6A; }
+  .tag-jonjun-kara { background: #F5F0EA; color: #8B6914; }
+  .tag-none { background: var(--border); color: var(--gray); }
+
+  .record-stars { font-size: 12px; color: var(--gold); margin-top: 4px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 0;
+    color: var(--gray);
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; letter-spacing: 1px; }
+
+  /* toast */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--washi);
+    padding: 10px 22px; border-radius: 2px;
+    font-size: 12px; letter-spacing: 2px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+
+  /* detail view overlay */
+  #detailOverlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(28,26,23,.7);
+    z-index: 100;
+    overflow-y: auto;
+  }
+  #detailOverlay.open { display: block; }
+  .detail-box {
+    background: var(--paper);
+    max-width: 480px;
+    margin: 40px auto;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .detail-header {
+    background: var(--ink);
+    color: var(--washi);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .detail-header h2 { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 300; letter-spacing: 3px; }
+  .detail-close { cursor: pointer; font-size: 20px; color: var(--gray); }
+  .detail-actions { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid rgba(255,255,255,.1); background: var(--ink); }
+  .btn-edit { flex: 1; padding: 9px; background: transparent; border: 1px solid var(--gold); color: var(--gold); border-radius: 2px; font-size: 12px; letter-spacing: 2px; cursor: pointer; font-family: inherit; }
+  .btn-edit:hover { background: var(--gold); color: var(--ink); }
+  .btn-delete { flex: 1; padding: 9px; background: transparent; border: 1px solid var(--shu); color: var(--shu); border-radius: 2px; font-size: 12px; letter-spacing: 2px; cursor: pointer; font-family: inherit; }
+  .btn-delete:hover { background: var(--shu); color: white; }
+  .detail-body { padding: 20px; }
+  .detail-photos { display: flex; gap: 8px; margin-bottom: 16px; }
+  .detail-photos img { width: 80px; height: 80px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); }
+  .detail-spec-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .detail-spec { font-size: 11px; background: var(--washi); border: 1px solid var(--border); padding: 3px 8px; border-radius: 1px; color: var(--gray); letter-spacing: 1px; }
+  .detail-comment { font-size: 13px; color: var(--ink); line-height: 1.7; margin: 12px 0; white-space: pre-wrap; }
+  .detail-chart { margin-top: 12px; }
+
+  /* ── POPUP ── */
+  .help-icon {
+    display: inline-block;
+    width: 14px; height: 14px;
+    line-height: 14px;
+    text-align: center;
+    font-size: 10px;
+    background: var(--border);
+    color: var(--gray);
+    border-radius: 50%;
+    cursor: pointer;
+    margin-left: 5px;
+    vertical-align: middle;
+    user-select: none;
+    transition: background .15s;
+  }
+  .help-icon:hover { background: var(--gold); color: white; }
+
+  /* ── LIGHTBOX ── */
+  #lightbox-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,9,8,.92);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+  #lightbox-overlay.open { display: flex; }
+  #lightbox-img {
+    max-width: 92vw;
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 2px;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 18px; right: 20px;
+    color: var(--washi);
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 301;
+  }
+
+  /* 写真読み込み中 */
+  .photo-slot.loading .icon { opacity: .3; }
+  .photo-slot.loading::after {
+    content: '読込中…';
+    position: absolute;
+    font-size: 9px;
+    color: var(--gray);
+    bottom: 6px;
+  }
+
+  #popup-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(28,26,23,.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  #popup-overlay.open { display: flex; }
+  .popup-box {
+    background: var(--paper);
+    max-width: 320px;
+    width: 90%;
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  }
+  .popup-header {
+    background: var(--ink);
+    color: var(--washi);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .popup-close { cursor: pointer; color: var(--gray); font-size: 18px; }
+  .popup-body {
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--ink);
+    letter-spacing: .3px;
+  }
+  .popup-body b { color: var(--shu); }
+  .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .toggle-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .toggle-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--washi);
+    color: var(--gray);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all .15s;
+  }
+  .toggle-btn.active {
+    background: var(--ink);
+    color: var(--washi);
+    border-color: var(--ink);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">酒<span>メモ</span></div>
+  <div class="header-sub">Sake Memo</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('list')">記録一覧</div>
+  <div class="tab" onclick="showTab('add')">＋ 新しく記録</div>
+</div>
+
+<!-- ══════════════ LIST PAGE ══════════════ -->
+<div id="page-list" class="page active">
+  <div class="list-toolbar">
+    <div class="record-count" id="recordCount">0 本の記録</div>
+    <div class="backup-actions">
+      <span class="backup-link" onclick="exportData()">書き出し</span>
+      <span class="backup-link" onclick="document.getElementById('importFile').click()">読み込み</span>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this)">
+    </div>
+  </div>
+  <div id="recordList">
+    <div class="empty-state">
+      <div class="big">🍶</div>
+      <p>まだ記録がありません</p>
+      <p style="margin-top:6px;font-size:11px;">「新しく記録」から追加しましょう</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADD PAGE ══════════════ -->
+<div id="page-add" class="page">
+
+  <div class="section-label">写真</div>
+  <div class="photo-grid">
+    <div class="photo-slot" onclick="handlePhotoSlotClick(0)">
+      <div class="icon">📷</div>
+      <div class="label">例：瓶</div>
+      <input type="file" id="photo0" accept="image/*" onchange="loadPhoto(0,this)">
+      <img id="img0" style="display:none">
+      <span class="photo-remove" id="rm0" style="display:none" onclick="removePhoto(0, event)">✕</span>
+    </div>
+    <div class="photo-slot" onclick="handlePhotoSlotClick(1)">
+      <div class="icon">📷</div>
+      <div class="label">例：ラベル</div>
+      <input type="file" id="photo1" accept="image/*" onchange="loadPhoto(1,this)">
+      <img id="img1" style="display:none">
+      <span class="photo-remove" id="rm1" style="display:none" onclick="removePhoto(1, event)">✕</span>
+    </div>
+    <div class="photo-slot" onclick="handlePhotoSlotClick(2)">
+      <div class="icon">📷</div>
+      <div class="label">例：お猪口</div>
+      <input type="file" id="photo2" accept="image/*" onchange="loadPhoto(2,this)">
+      <img id="img2" style="display:none">
+      <span class="photo-remove" id="rm2" style="display:none" onclick="removePhoto(2, event)">✕</span>
+    </div>
+  </div>
+
+  <div class="section-label">基本情報</div>
+  <div class="field">
+    <label>銘柄名 *</label>
+    <input type="text" id="f-name" placeholder="例：東龍 純米吟醸 龍の舞">
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>蔵元</label>
+      <input type="text" id="f-kura" placeholder="例：東春酒造">
+    </div>
+    <div class="field">
+      <label>産地</label>
+      <input type="text" id="f-origin" placeholder="例：愛知県">
+    </div>
+  </div>
+  <div class="row3">
+    <div class="field">
+      <label>特定名称</label>
+      <select id="f-type">
+        <option value="">-</option>
+        <option>純米大吟醸</option>
+        <option>大吟醸</option>
+        <option>純米吟醸</option>
+        <option>吟醸</option>
+        <option>特別純米</option>
+        <option>純米</option>
+        <option>特別本醸造</option>
+        <option>本醸造</option>
+        <option>普通酒</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>精米歩合</label>
+      <input type="number" id="f-seimaibuai" placeholder="例：50" min="1" max="100">
+    </div>
+    <div class="field">
+      <label>アルコール <span class="help-icon" onclick="showPopup('alc')">?</span></label>
+      <input type="number" id="f-alc" placeholder="例：15" step="0.1">
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>原料米</label>
+      <input type="text" id="f-rice" placeholder="例：山田錦">
+    </div>
+    <div class="field">
+      <label>酵母</label>
+      <input type="text" id="f-yeast" placeholder="例：協会9号系">
+    </div>
+  </div>
+
+  <div class="section-label">製造区分</div>
+  <div class="toggle-row" id="tg-seizo">
+    <button class="toggle-btn" onclick="setToggle('seizo', '生酒')">生酒</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', '原酒')">原酒</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', '無濾過')">無濾過</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', 'おりがらみ')">おりがらみ</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', 'にごり')">にごり</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', '生酛')">生酛</button>
+    <button class="toggle-btn" onclick="setToggle('seizo', '山廃')">山廃</button>
+  </div>
+
+  <div class="section-label">スペック</div>
+  <div class="row2">
+    <div class="field">
+      <label>日本酒度 <span class="help-icon" onclick="showPopup('smd')">?</span></label>
+      <input type="number" id="f-smd" placeholder="例：+3" step="0.1" oninput="updateFormChart()">
+    </div>
+    <div class="field">
+      <label>酸度 <span class="help-icon" onclick="showPopup('acid')">?</span></label>
+      <input type="number" id="f-acid" placeholder="例：1.5" step="0.1" oninput="updateFormChart()">
+    </div>
+  </div>
+
+  <!-- リアルタイムチャートプレビュー -->
+  <div id="form-chart-wrap" style="display:none;" class="chart-wrap">
+    <div class="chart-title">甘辛 · 濃淡 マップ <span class="help-icon" onclick="showPopup('sato')">?</span></div>
+    <div class="meter-result-row" style="margin-bottom:12px;">
+      <div class="meter-result-box">
+        <div class="val" id="f-r-kankara">—</div>
+        <div class="val-label">甘辛度</div>
+      </div>
+      <div class="meter-result-box">
+        <div class="val" id="f-r-nootan">—</div>
+        <div class="val-label">濃淡度</div>
+      </div>
+    </div>
+    <canvas id="formChart" width="260" height="260"></canvas>
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label>アミノ酸度 <span class="help-icon" onclick="showPopup('amino')">?</span></label>
+      <input type="number" id="f-amino" placeholder="例：1.2" step="0.1">
+    </div>
+    <div class="field">
+      <label>飲んだ温度</label>
+      <select id="f-temp">
+        <option value="">-</option>
+        <option>冷酒（15℃以下）</option>
+        <option>冷や（20℃前後）</option>
+        <option>日向燗（30℃）</option>
+        <option>人肌燗（35℃）</option>
+        <option>ぬる燗（40℃）</option>
+        <option>上燗（45℃）</option>
+        <option>熱燗（50℃）</option>
+        <option>飛び切り燗（55〜60℃）</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-label">テイスティング</div>
+  <div class="field">
+    <label>総合評価</label>
+    <div class="stars" id="stars">
+      <span class="star" data-i="1" onclick="setStar(1)">★</span>
+      <span class="star" data-i="2" onclick="setStar(2)">★</span>
+      <span class="star" data-i="3" onclick="setStar(3)">★</span>
+      <span class="star" data-i="4" onclick="setStar(4)">★</span>
+      <span class="star" data-i="5" onclick="setStar(5)">★</span>
+    </div>
+  </div>
+  <div class="field">
+    <label>飲んだ日</label>
+    <input type="date" id="f-date">
+  </div>
+  <div class="field">
+    <label>場所・シーン</label>
+    <input type="text" id="f-place" placeholder="例：自宅、居酒屋〇〇">
+  </div>
+  <div class="field">
+    <label>コメント・テイスティングノート</label>
+    <textarea id="f-comment" placeholder="香り、味、余韻など自由に…"></textarea>
+  </div>
+
+  <button class="btn-shu" onclick="saveRecord()">記録を保存する</button>
+</div>
+
+<!-- ══════════════ LIGHTBOX ══════════════ -->
+<div id="lightbox-overlay" onclick="closeLightbox()">
+  <span class="lightbox-close">✕</span>
+  <img id="lightbox-img" src="" onclick="event.stopPropagation()">
+</div>
+
+<!-- ══════════════ POPUP ══════════════ -->
+<div id="popup-overlay">
+  <div class="popup-box">
+    <div class="popup-header">
+      <span id="popup-title"></span>
+      <span class="popup-close" onclick="closePopup()">✕</span>
+    </div>
+    <div class="popup-body" id="popup-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════ DETAIL OVERLAY ══════════════ -->
+<div id="detailOverlay">
+  <div class="detail-box">
+    <div class="detail-header">
+      <h2 id="d-name"></h2>
+      <span class="detail-close" onclick="closeDetail()">✕</span>
+    </div>
+    <div class="detail-actions">
+      <button class="btn-edit" onclick="editRecord()">編集する</button>
+      <button class="btn-delete" onclick="deleteRecord()">削除する</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-photos" id="d-photos"></div>
+      <div class="detail-spec-row" id="d-specs"></div>
+      <div class="detail-comment" id="d-comment"></div>
+      <div class="detail-stars" id="d-stars"></div>
+      <div class="detail-chart" id="d-chart"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">保存しました</div>
+
+<script>
+// ── DATA ──
+let records = [];
+let currentStar = 0;
+let photoData = ['', '', ''];
+let detailRecord = null;
+let editingId = null;
+let toggleState = { seizo: new Set() };
+
+// ── INDEXEDDB ──
+const DB_NAME = 'sakeMemoDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'records';
+let dbInstance = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (dbInstance) { resolve(dbInstance); return; }
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = (e) => { dbInstance = e.target.result; resolve(dbInstance); };
+    req.onerror = (e) => reject(e);
+  });
+}
+
+async function loadRecordsFromDB() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const all = [];
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) { all.push(cursor.value); cursor.continue(); }
+        else resolve(all.sort((a, b) => (b._savedOrder || 0) - (a._savedOrder || 0)));
+      };
+      cursorReq.onerror = (e) => reject(e);
+    });
+  } catch (err) {
+    console.error('IndexedDB読み込み失敗:', err);
+    return [];
+  }
+}
+
+async function saveRecordToDB(rec) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(rec);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e);
+    });
+  } catch (err) {
+    console.error('IndexedDB保存失敗:', err);
+    showToast('保存に失敗しました');
+    return false;
+  }
+}
+
+async function deleteRecordFromDB(id) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(id);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e);
+    });
+  } catch (err) {
+    console.error('IndexedDB削除失敗:', err);
+    return false;
+  }
+}
+
+async function bulkPutRecordsToDB(recs) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      recs.forEach(r => store.put(r));
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e);
+    });
+  } catch (err) {
+    console.error('IndexedDB一括保存失敗:', err);
+    return false;
+  }
+}
+
+async function clearAllRecordsInDB() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e);
+    });
+  } catch (err) {
+    console.error('IndexedDB全削除失敗:', err);
+    return false;
+  }
+}
+
+function setToggle(group, val) {
+  if (toggleState[group].has(val)) {
+    toggleState[group].delete(val);
+  } else {
+    toggleState[group].add(val);
+  }
+  document.querySelectorAll(`#tg-${group} .toggle-btn`).forEach(btn => {
+    btn.classList.toggle('active', toggleState[group].has(btn.textContent));
+  });
+}
+
+// ── TAB ──
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + t).classList.add('active');
+  event.target.classList.add('active');
+  if (t === 'list') renderList();
+
+}
+
+// ── PHOTOS ──
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+function setTodayDate() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  document.getElementById('f-date').value = `${yyyy}-${mm}-${dd}`;
+}
+function triggerPhoto(i) { document.getElementById('photo' + i).click(); }
+
+function handlePhotoSlotClick(i) {
+  if (photoData[i]) {
+    openLightbox(photoData[i]);
+  } else {
+    triggerPhoto(i);
+  }
+}
+
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadPhoto(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const img = document.getElementById('img' + i);
+  const slot = img.closest('.photo-slot');
+  slot.classList.add('loading');
+  compressImage(file, 1400, 0.82).then(dataUrl => {
+    photoData[i] = dataUrl;
+    img.src = dataUrl;
+    img.style.display = 'block';
+    document.getElementById('rm' + i).style.display = 'flex';
+    slot.classList.remove('loading');
+  }).catch(() => {
+    slot.classList.remove('loading');
+    showToast('画像の読み込みに失敗しました');
+  });
+}
+
+function removePhoto(i, e) {
+  e.stopPropagation();
+  photoData[i] = '';
+  const img = document.getElementById('img' + i);
+  img.style.display = 'none';
+  img.src = '';
+  document.getElementById('photo' + i).value = '';
+  document.getElementById('rm' + i).style.display = 'none';
+}
+
+// ── LIGHTBOX ──
+function openLightbox(src) {
+  if (!src) return;
+  const overlay = document.getElementById('lightbox-overlay');
+  document.getElementById('lightbox-img').src = src;
+  overlay.classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open');
+}
+
+// ── STARS ──
+function setStar(n) {
+  currentStar = n;
+  document.querySelectorAll('.star').forEach((s, i) => {
+    s.classList.toggle('active', i < n);
+  });
+}
+
+// ── SAVE ──
+async function saveRecord() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('銘柄名を入力してください'); return; }
+  const smd  = parseFloat(document.getElementById('f-smd').value);
+  const acid = parseFloat(document.getElementById('f-acid').value);
+  const { kankara, nootan, type } = computeType(smd, acid);
+  const isEditing = !!editingId;
+  const rec = {
+    id: editingId || Date.now(),
+    name,
+    kura:    document.getElementById('f-kura').value,
+    origin:  document.getElementById('f-origin').value,
+    type:    document.getElementById('f-type').value,
+    rice:    document.getElementById('f-rice').value,
+    yeast:   document.getElementById('f-yeast').value,
+    seimaibuai: document.getElementById('f-seimaibuai').value,
+    alc:     document.getElementById('f-alc').value,
+    smd:     document.getElementById('f-smd').value,
+    acid:    document.getElementById('f-acid').value,
+    amino:   document.getElementById('f-amino').value,
+    temp:    document.getElementById('f-temp').value,
+    seizo:   [...toggleState.seizo],
+    star:    currentStar,
+    date:    document.getElementById('f-date').value,
+    place:   document.getElementById('f-place').value,
+    comment: document.getElementById('f-comment').value,
+    photos:  [...photoData],
+    kankara, nootan, sakeType: type,
+    _savedOrder: isEditing
+      ? (records.find(x => x.id === editingId)?._savedOrder || Date.now())
+      : Date.now()
+  };
+  const ok = await saveRecordToDB(rec);
+  if (!ok) return; // 保存失敗時はメモリ上の状態も変更しない
+  if (isEditing) {
+    const idx = records.findIndex(x => x.id === editingId);
+    if (idx !== -1) records[idx] = rec;
+    editingId = null;
+  } else {
+    records.unshift(rec);
+  }
+  resetForm();
+  showToast('記録を保存しました 🍶');
+  showTab('list');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.tab')[1].classList.remove('active');
+}
+
+function editRecord() {
+  const r = detailRecord;
+  if (!r) return;
+  editingId = r.id;
+  // フォームに値を流し込む
+  document.getElementById('f-name').value = r.name || '';
+  document.getElementById('f-kura').value = r.kura || '';
+  document.getElementById('f-origin').value = r.origin || '';
+  document.getElementById('f-type').value = r.type || '';
+  document.getElementById('f-rice').value = r.rice || '';
+  document.getElementById('f-yeast').value = r.yeast || '';
+  document.getElementById('f-seimaibuai').value = r.seimaibuai || '';
+  document.getElementById('f-alc').value = r.alc || '';
+  document.getElementById('f-smd').value = r.smd || '';
+  document.getElementById('f-acid').value = r.acid || '';
+  document.getElementById('f-amino').value = r.amino || '';
+  document.getElementById('f-temp').value = r.temp || '';
+  document.getElementById('f-date').value = r.date || '';
+  document.getElementById('f-place').value = r.place || '';
+  document.getElementById('f-comment').value = r.comment || '';
+  // 星
+  currentStar = r.star || 0;
+  document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('active', i < currentStar));
+  // 写真
+  photoData = [...r.photos];
+  [0,1,2].forEach(i => {
+    const img = document.getElementById('img' + i);
+    const rm = document.getElementById('rm' + i);
+    if (photoData[i]) { img.src = photoData[i]; img.style.display = 'block'; rm.style.display = 'flex'; }
+    else { img.style.display = 'none'; rm.style.display = 'none'; }
+  });
+  // トグル復元
+  toggleState = { seizo: new Set(r.seizo || []) };
+  document.querySelectorAll('#tg-seizo .toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', toggleState.seizo.has(btn.textContent));
+  });
+  // チャート再表示（フォームに値を入れた後に呼ぶ）
+  updateFormChart();
+  // 保存ボタンのラベル変更
+  document.querySelector('.btn-shu').textContent = '編集を保存する';
+  closeDetail();
+  // 編集タブへ
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-add').classList.add('active');
+}
+
+async function deleteRecord() {
+  if (!detailRecord) return;
+  if (!confirm(`「${detailRecord.name}」を削除しますか？`)) return;
+  const id = detailRecord.id;
+  const ok = await deleteRecordFromDB(id);
+  if (!ok) { showToast('削除に失敗しました'); return; }
+  records = records.filter(x => x.id !== id);
+  closeDetail();
+  renderList();
+  showToast('削除しました');
+}
+
+function resetForm() {
+  ['f-name','f-kura','f-origin','f-rice','f-yeast','f-seimaibuai','f-alc','f-smd','f-acid','f-amino','f-date','f-place','f-comment']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-temp').value = '';
+  setTodayDate();
+  currentStar = 0;
+  editingId = null;
+  toggleState = { seizo: new Set() };
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.btn-shu').textContent = '記録を保存する';
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  photoData = ['','',''];
+  [0,1,2].forEach(i => {
+    document.getElementById('img' + i).style.display = 'none';
+    document.getElementById('photo' + i).value = '';
+    document.getElementById('rm' + i).style.display = 'none';
+  });
+}
+
+// ── CALC / CHART ──
+function computeType(smd, acid) {
+  if (isNaN(smd) || isNaN(acid)) return { kankara: null, nootan: null, type: null };
+  const kankara = 193593 / (1443 + smd) - 1.16 * acid - 132.57;
+  const nootan  = 94545  / (1443 + smd) + 1.88 * acid - 68.54;
+  let type = null;
+  if (kankara >= 0 && nootan <= 0) type = 'tanrei-ama';
+  else if (kankara < 0 && nootan <= 0) type = 'tanrei-kara';
+  else if (kankara >= 0 && nootan > 0) type = 'jonjun-ama';
+  else if (kankara < 0 && nootan > 0)  type = 'jonjun-kara';
+  return { kankara: kankara.toFixed(2), nootan: nootan.toFixed(2), type };
+}
+
+function updateFormChart() {
+  const smd  = parseFloat(document.getElementById('f-smd').value);
+  const acid = parseFloat(document.getElementById('f-acid').value);
+  const wrap = document.getElementById('form-chart-wrap');
+  if (isNaN(smd) || isNaN(acid)) { wrap.style.display = 'none'; return; }
+  const { kankara, nootan } = computeType(smd, acid);
+  wrap.style.display = 'block';
+  document.getElementById('f-r-kankara').textContent = kankara !== null ? (parseFloat(kankara) > 0 ? '+' : '') + kankara : '—';
+  document.getElementById('f-r-nootan').textContent  = nootan  !== null ? (parseFloat(nootan)  > 0 ? '+' : '') + nootan  : '—';
+  drawChart(smd, acid, 'formChart', false);
+}
+
+function drawChart(smd, acid, canvasId, small) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = small ? 24 : 36;
+  const plotW = W - pad * 2;
+  const plotH = H - pad * 2;
+
+  // 軸範囲: 横軸=日本酒度 -15〜+15, 縦軸=酸度 0〜3
+  const smdMin = -15, smdMax = 15;
+  const acidMin = 0,  acidMax = 3;
+
+  // 座標変換
+  function toX(s) { return pad + (s - smdMin) / (smdMax - smdMin) * plotW; }
+  function toY(a) { return pad + plotH - (a - acidMin) / (acidMax - acidMin) * plotH; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── 領域塗り分け（ピクセル単位で判定）──
+  // 甘辛度=0: acid = 193593/(1.16*(1443+smd)) - 132.57/1.16
+  // 濃淡度=0: acid = (68.54 - 94545/(1443+smd)) / 1.88
+  function kankaraVal(s, a) { return 193593/(1443+s) - 1.16*a - 132.57; }
+  function nootanVal(s, a)  { return  94545/(1443+s) + 1.88*a - 68.54; }
+
+  const colors = {
+    'tanrei-ama':  [45,  95, 158, 28],   // 淡麗甘口 青
+    'tanrei-kara': [46, 125, 106, 28],   // 淡麗辛口 緑
+    'jonjun-ama':  [139, 45, 106, 28],   // 濃醇甘口 紫
+    'jonjun-kara': [139,105,  20, 28],   // 濃醇辛口 金
+  };
+
+  const imgData = ctx.createImageData(W, H);
+  for (let py = pad; py < H - pad; py++) {
+    for (let px = pad; px < W - pad; px++) {
+      const s = smdMin + (px - pad) / plotW * (smdMax - smdMin);
+      const a = acidMin + (1 - (py - pad) / plotH) * (acidMax - acidMin);
+      if (1443 + s <= 0) continue;
+      const k = kankaraVal(s, a);
+      const n = nootanVal(s, a);
+      let c;
+      if      (k >= 0 && n <= 0) c = colors['tanrei-ama'];
+      else if (k <  0 && n <= 0) c = colors['tanrei-kara'];
+      else if (k >= 0 && n >  0) c = colors['jonjun-ama'];
+      else                        c = colors['jonjun-kara'];
+      const i = (py * W + px) * 4;
+      imgData.data[i]   = c[0];
+      imgData.data[i+1] = c[1];
+      imgData.data[i+2] = c[2];
+      imgData.data[i+3] = c[3];
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  // ── 境界線：甘辛度=0 ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(100,80,60,0.5)';
+  ctx.lineWidth = small ? 1 : 1.5;
+  ctx.setLineDash([4, 3]);
+  let first = true;
+  for (let s = smdMin; s <= smdMax; s += 0.1) {
+    if (1443 + s <= 0) continue;
+    const a = (193593 / (1443 + s) - 132.57) / 1.16;
+    if (a < acidMin || a > acidMax) { first = true; continue; }
+    const px = toX(s), py = toY(a);
+    first ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    first = false;
+  }
+  ctx.stroke();
+
+  // ── 境界線：濃淡度=0 ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(100,80,60,0.5)';
+  ctx.lineWidth = small ? 1 : 1.5;
+  ctx.setLineDash([4, 3]);
+  first = true;
+  for (let s = smdMin; s <= smdMax; s += 0.1) {
+    if (1443 + s <= 0) continue;
+    const a = (68.54 - 94545 / (1443 + s)) / 1.88;
+    if (a < acidMin || a > acidMax) { first = true; continue; }
+    const px = toX(s), py = toY(a);
+    first ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    first = false;
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── 軸 ──
+  ctx.strokeStyle = '#A09890';
+  ctx.lineWidth = 1;
+  // 横軸（酸度=0の位置 = 下端）
+  ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+
+  // ── 目盛り ──
+  const fs = small ? 7 : 9;
+  ctx.fillStyle = '#8A8580';
+  ctx.font = `${fs}px sans-serif`;
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = '#C8C0B4';
+
+  // 横軸目盛り（日本酒度）
+  [-10, -5, 0, 5, 10].forEach(v => {
+    const px = toX(v);
+    ctx.beginPath(); ctx.moveTo(px, H - pad); ctx.lineTo(px, H - pad + 4); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillText(v > 0 ? '+'+v : v, px, H - pad + (small ? 10 : 13));
+  });
+
+  // 縦軸目盛り（酸度）
+  [0.5, 1.0, 1.5, 2.0, 2.5].forEach(v => {
+    const py = toY(v);
+    ctx.beginPath(); ctx.moveTo(pad - 4, py); ctx.lineTo(pad, py); ctx.stroke();
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(1), pad - 6, py + 3);
+  });
+
+  // ── 軸ラベル ──
+  const afs = small ? 8 : 10;
+  ctx.fillStyle = '#6A6460';
+  ctx.font = `${afs}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('日本酒度', W / 2, H - (small ? 1 : 2));
+  ctx.save();
+  ctx.translate(small ? 7 : 10, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('酸度', 0, 0);
+  ctx.restore();
+
+  // ── エリアラベル ──
+  // 各エリアのピクセル重心を計算してラベルを配置
+  const lfs = small ? 7 : 10;
+  const areas = {
+    'tanrei-ama':  { text: '淡麗甘口', color: '#2D5F9E', sx: 0, sy: 0, count: 0 },
+    'tanrei-kara': { text: '淡麗辛口', color: '#2E7D6A', sx: 0, sy: 0, count: 0 },
+    'jonjun-ama':  { text: '濃醇甘口', color: '#8B2D6A', sx: 0, sy: 0, count: 0 },
+    'jonjun-kara': { text: '濃醇辛口', color: '#8B6914', sx: 0, sy: 0, count: 0 },
+  };
+  const step = small ? 4 : 3;
+  for (let py = pad; py < H - pad; py += step) {
+    for (let px = pad; px < W - pad; px += step) {
+      const s = smdMin + (px - pad) / plotW * (smdMax - smdMin);
+      const a = acidMin + (1 - (py - pad) / plotH) * (acidMax - acidMin);
+      if (1443 + s <= 0) continue;
+      const k = kankaraVal(s, a);
+      const n = nootanVal(s, a);
+      let key;
+      if      (k >= 0 && n <= 0) key = 'tanrei-ama';
+      else if (k <  0 && n <= 0) key = 'tanrei-kara';
+      else if (k >= 0 && n >  0) key = 'jonjun-ama';
+      else                        key = 'jonjun-kara';
+      areas[key].sx += px;
+      areas[key].sy += py;
+      areas[key].count++;
+    }
+  }
+  Object.values(areas).forEach(a => {
+    if (a.count === 0) return;
+    const cx = a.sx / a.count;
+    const cy = a.sy / a.count;
+    ctx.fillStyle = a.color;
+    ctx.font = `bold ${lfs}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(a.text, cx, cy);
+  });
+
+  // ── プロット点 ──
+  if (smd !== null && acid !== null) {
+    const s = parseFloat(smd);
+    const a = parseFloat(acid);
+    if (!isNaN(s) && !isNaN(a) && a >= acidMin && a <= acidMax && s >= smdMin && s <= smdMax) {
+      const px = toX(s), py = toY(a);
+      const r1 = small ? 10 : 16;
+      const r2 = small ? 4  : 6;
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, r1);
+      grad.addColorStop(0, 'rgba(192,57,43,.55)');
+      grad.addColorStop(1, 'rgba(192,57,43,0)');
+      ctx.beginPath(); ctx.arc(px, py, r1, 0, Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, r2, 0, Math.PI*2);
+      ctx.fillStyle = '#C0392B'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  }
+}
+
+// ── LIST ──
+function renderList() {
+  const el = document.getElementById('recordList');
+  const cnt = document.getElementById('recordCount');
+  cnt.textContent = `${records.length} 本の記録`;
+  if (!records.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">🍶</div><p>まだ記録がありません</p><p style="margin-top:6px;font-size:11px;">「新しく記録」から追加しましょう</p></div>`;
+    return;
+  }
+  el.innerHTML = records.map(r => {
+    const thumb = r.photos[0]
+      ? `<div class="record-thumb"><img src="${r.photos[0]}"></div>`
+      : `<div class="record-thumb">🍶</div>`;
+    const typeTag = r.sakeType ? `<span class="record-tag tag-${r.sakeType}">${{'tanrei-ama':'淡麗甘口','tanrei-kara':'淡麗辛口','jonjun-ama':'濃醇甘口','jonjun-kara':'濃醇辛口'}[r.sakeType]}</span>` : '';
+    const specTag = r.type ? `<span class="record-tag tag-none">${r.type}</span>` : '';
+    const stars = r.star ? '★'.repeat(r.star) + '☆'.repeat(5 - r.star) : '';
+    const dateStr = r.date ? formatDate(r.date) : '';
+    return `<div class="record-card" onclick="openDetail(${r.id})">
+      <div class="record-card-inner">
+        ${thumb}
+        <div class="record-info">
+          <div class="record-name-row">
+            <div class="record-name">${r.name}</div>
+            ${dateStr ? `<div class="record-date">${dateStr}</div>` : ''}
+          </div>
+          <div class="record-meta">${[r.kura, r.origin].filter(Boolean).join(' · ') || '—'}</div>
+          <div>${typeTag}${specTag}</div>
+          ${stars ? `<div class="record-stars">${stars}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DETAIL ──
+function openDetail(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  detailRecord = r;
+  document.getElementById('d-name').textContent = r.name;
+  // photos
+  const ph = document.getElementById('d-photos');
+  ph.innerHTML = r.photos.filter(Boolean).map((p, idx) => `<img src="${p}" data-idx="${idx}" class="detail-photo-thumb" style="cursor:pointer;">`).join('') || '<span style="color:var(--gray);font-size:12px;">写真なし</span>';
+  ph.querySelectorAll('.detail-photo-thumb').forEach(imgEl => {
+    imgEl.addEventListener('click', () => openLightbox(imgEl.src));
+  });
+  // specs
+  const specs = [];
+  if (r.type) specs.push(r.type);
+  if (r.rice) specs.push(r.rice);
+  if (r.yeast) specs.push(r.yeast);
+  if (r.seimaibuai) specs.push(`精米 ${r.seimaibuai}%`);
+  if (r.alc) specs.push(`${r.alc}%`);
+  if (r.seizo && r.seizo.length) r.seizo.forEach(s => specs.push(s));
+  if (r.smd) specs.push(`日本酒度 ${r.smd}`);
+  if (r.acid) specs.push(`酸度 ${r.acid}`);
+  if (r.amino) specs.push(`アミノ酸 ${r.amino}`);
+  if (r.temp) specs.push(r.temp);
+  if (r.date) specs.push(formatDate(r.date));
+  if (r.place) specs.push(r.place);
+  document.getElementById('d-specs').innerHTML = specs.map(s => `<span class="detail-spec">${s}</span>`).join('');
+  document.getElementById('d-comment').textContent = r.comment || '';
+  document.getElementById('d-stars').innerHTML = r.star ? `<span style="color:var(--gold);font-size:16px;">${'★'.repeat(r.star)}</span>` : '';
+  // chart
+  const chartEl = document.getElementById('d-chart');
+  if (r.smd && r.acid) {
+    const { kankara, nootan } = computeType(parseFloat(r.smd), parseFloat(r.acid));
+    chartEl.innerHTML = `<div style="font-size:10px;letter-spacing:2px;color:var(--shu);margin-bottom:8px;">甘辛度 ${parseFloat(kankara)>0?'+':''}${kankara}　濃淡度 ${parseFloat(nootan)>0?'+':''}${nootan}</div><canvas id="detailChart" width="220" height="220"></canvas>`;
+    setTimeout(() => drawChart(r.smd, r.acid, 'detailChart', true), 10);
+  } else {
+    chartEl.innerHTML = '';
+  }
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+}
+
+// ── POPUP ──
+const popupContent = {
+  alc: {
+    title: 'アルコール度数',
+    body: `「15度以上16度未満」と表記されている場合は15と入力してください。`
+  },
+  smd: {
+    title: '日本酒度',
+    body: `4℃の水を基準（0）とし、15℃の日本酒の比重を数値化したもの。糖分が多いと水より重くなりマイナス（甘口傾向）、少ないと軽くなりプラス（辛口傾向）になります。ただし実際の甘辛は酸度にも依存するため、あくまで目安です。`
+  },
+  acid: {
+    title: '酸度',
+    body: `清酒10mlを0.1N水酸化ナトリウム水溶液で中和滴定した際の使用量（ml）が酸度の値です。乳酸・リンゴ酸・コハク酸などの有機酸の総量を示し、数値が高いほど濃醇、低いほど淡麗な傾向があります。ただし酸の種類によっても味わいのニュアンスは異なります。`
+  },
+  amino: {
+    title: 'アミノ酸度',
+    body: `清酒中のアミノ酸の総量を示す数値。ホルモール滴定法（国税庁所定分析法）で測定され、中性ホルマリン液でアミノ基をブロックした後、0.1N水酸化ナトリウム水溶液で滴定した際の使用量（ml）が値となります。近年は劇物であるホルマリンの代わりにエタノールを用いる方法（酒類総合研究所標準分析法）も認められています。数値が高いほど旨みが強く濃醇、低いほど淡麗な傾向がありますが、高すぎると雑味の原因にもなります。`
+  },
+  sato: {
+    title: '甘辛・濃淡マップについて',
+    body: `佐藤信ら（醸造学会誌 第69巻, 1974年）による計算式を使用しています。<br><br><b>甘辛度</b><br>193593 ÷ (1443 + 日本酒度) − 1.16 × 酸度 − 132.57<br>値が大きいほど甘口<br><br><b>濃淡度</b><br>94545 ÷ (1443 + 日本酒度) + 1.88 × 酸度 − 68.54<br>値が大きいほど濃醇<br><br>※実際の味覚は仕込み水・米・酵母など多くの要素に依存します。あくまで目安としてご利用ください。`
+  }
+};
+
+function showPopup(key) {
+  const c = popupContent[key];
+  if (!c) return;
+  document.getElementById('popup-title').textContent = c.title;
+  document.getElementById('popup-body').innerHTML = c.body;
+  document.getElementById('popup-overlay').classList.add('open');
+}
+
+function closePopup() {
+  document.getElementById('popup-overlay').classList.remove('open');
+}
+
+// ── EXPORT / IMPORT ──
+function exportData() {
+  if (!records.length) { showToast('記録がありません'); return; }
+  const payload = {
+    app: 'sake-memo',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    records
+  };
+  const json = JSON.stringify(payload);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const d = new Date();
+  const fname = `sake-memo_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+
+  // Web Share APIが使えれば共有シートを優先（iOSでファイル保存しやすい）
+  if (navigator.canShare && navigator.share) {
+    const file = new File([blob], fname, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: '酒メモ バックアップ' })
+        .catch(() => fallbackDownload(url, fname));
+      return;
+    }
+  }
+  fallbackDownload(url, fname);
+}
+
+function fallbackDownload(url, fname) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast('書き出しました 📦');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const incoming = Array.isArray(data) ? data : data.records;
+      if (!Array.isArray(incoming)) throw new Error('invalid format');
+      const mode = records.length
+        ? confirm(`${incoming.length}件のデータを読み込みます。\n「OK」で既存データに追加、「キャンセル」で既存データを置き換えます。`)
+        : true;
+      if (mode) {
+        const existingIds = new Set(records.map(r => r.id));
+        const now = Date.now();
+        incoming.forEach((r, i) => {
+          if (existingIds.has(r.id)) r.id = now + i;
+          if (r._savedOrder === undefined) r._savedOrder = now - i; // 順序維持
+        });
+        const ok = await bulkPutRecordsToDB(incoming);
+        if (!ok) { showToast('読み込みに失敗しました'); return; }
+        records = [...incoming, ...records];
+      } else {
+        const ok1 = await clearAllRecordsInDB();
+        const ok2 = await bulkPutRecordsToDB(incoming);
+        if (!ok1 || !ok2) { showToast('読み込みに失敗しました'); return; }
+        records = incoming;
+      }
+      renderList();
+      showToast(`${incoming.length}件読み込みました`);
+    } catch (err) {
+      showToast('読み込みに失敗しました');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── INIT ──
+async function initApp() {
+  records = await loadRecordsFromDB();
+  renderList();
+  setTodayDate();
+}
+initApp();
+
+document.getElementById('popup-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closePopup();
+});
+
+// close detail on background click
+document.getElementById('detailOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDetail();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeLightbox();
+    closePopup();
+    closeDetail();
+  }
+});
+
+// ── PWA: Service Worker登録 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
