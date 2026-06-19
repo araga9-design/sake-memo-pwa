@@ -42,6 +42,7 @@
   header {
     background: var(--ink);
     padding: 18px 24px;
+    padding-top: calc(18px + env(safe-area-inset-top));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -455,7 +456,11 @@
   }
   .lightbox-close {
     position: absolute;
-    top: 18px; right: 20px;
+    top: 14px; right: 14px;
+    width: 40px; height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--washi);
     font-size: 22px;
     cursor: pointer;
@@ -537,8 +542,8 @@
 </header>
 
 <div class="tabs">
-  <div class="tab active" onclick="showTab('list')">記録一覧</div>
-  <div class="tab" onclick="showTab('add')">＋ 新しく記録</div>
+  <div class="tab active" data-tab="list" onclick="showTab('list')">記録一覧</div>
+  <div class="tab" data-tab="add" onclick="showTab('add')">＋ 新しく記録</div>
 </div>
 
 <!-- ══════════════ LIST PAGE ══════════════ -->
@@ -728,7 +733,7 @@
 
 <!-- ══════════════ LIGHTBOX ══════════════ -->
 <div id="lightbox-overlay" onclick="closeLightbox()">
-  <span class="lightbox-close">✕</span>
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
   <img id="lightbox-img" src="" onclick="event.stopPropagation()">
 </div>
 
@@ -893,11 +898,11 @@ function setToggle(group, val) {
 // ── TAB ──
 function showTab(t) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tabEl => tabEl.classList.remove('active'));
   document.getElementById('page-' + t).classList.add('active');
-  event.target.classList.add('active');
+  const targetTab = document.querySelector(`.tab[data-tab="${t}"]`);
+  if (targetTab) targetTab.classList.add('active');
   if (t === 'list') renderList();
-
 }
 
 // ── PHOTOS ──
@@ -1040,8 +1045,6 @@ async function saveRecord() {
   resetForm();
   showToast('記録を保存しました 🍶');
   showTab('list');
-  document.querySelectorAll('.tab')[0].classList.add('active');
-  document.querySelectorAll('.tab')[1].classList.remove('active');
 }
 
 function editRecord() {
